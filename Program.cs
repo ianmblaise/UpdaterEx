@@ -16,16 +16,21 @@ namespace Updater
         static void Main(string[] args)
         {
             CheckForUpdates();
+
+            Console.WriteLine("Update completed.");
+            Console.ReadLine();
+
         }
 
         public static void CheckForUpdates()
         {
             System.Net.WebClient client = new System.Net.WebClient(); // <-- your web client object.
 
-            string serverVersion = client.DownloadString(new Uri("https://github.com/lsdclown/Updater/blob/master/currentversion.ver"));
+            string serverVersion = client.DownloadString(new Uri("https://raw.githubusercontent.com/lsdclown/UpdaterEx/master/latestversion.ver"));
 
             if (ClientVersion == serverVersion)
             {
+                Console.WriteLine("No updated needed.");
                 return; // versions match, so get the heck outta here.
             }
 
@@ -33,42 +38,22 @@ namespace Updater
 
             while (!updateApplied)
             {
-                client.DownloadFile(new Uri("http://yourwebserver/updates/UpdateMe.exe"), "UpdateMe.exe.new");
+                client.DownloadFile(new Uri("https://raw.githubusercontent.com/lsdclown/UpdaterEx/master/update/" + "UpdateMe.exe"), "UpdateMe.exe.new");
 
-                // if the file doesn't exist then ask to try again.
-                if (!File.Exists("UpdateMe.exe.new"))
+                if (File.Exists("UpdateMe.exe.new"))
                 {
-                    Console.Write("Update was not downloaded successfully, try again? (y/n) : ");
-                    string answer = Console.ReadLine();
-
-                    if (answer != "y")
+                    Console.WriteLine("got updated file.. swap out.");
+                    var replaced = ReplaceWithNewVersion();
+                    if (replaced)
                     {
-                        Console.WriteLine("Failed to apply update, try again later.");
-                        Console.WriteLine("Press any key to continue..");
-                        Console.Read();
-
-                        Environment.Exit(0);
+                        Console.WriteLine("Replaced successfully.");
+                        updateApplied = true;
+                        continue;
                     }
 
-                    continue;
+                    Console.WriteLine("Update failed could not replace the old file.. trying again.");
                 }
-
-                Process[] yourProcesses = Process.GetProcessesByName("UpdateMe");
-                if (yourProcesses.Length <= 0)
-                {
-                    // No open instances of the program that is being updated so go ahead and apply the update..    
-                    updateApplied = ReplaceWithNewVersion();
-                }
-
-                // Since there are some instances of UpdateMe running already, probably best to terminate them to avoid IO errors.. 
-                // So ask the user if it's okay to terminate them.. or just be a dick and do it without asking.
-                Console.WriteLine("Need to close all running instances of UpdateMe. I'll be a dick and just close them, fuck what you heard.");
-
-                foreach (Process process in yourProcesses)
-                {
-                    Console.WriteLine("Killing UpdateMe (id: {0}). He will be missed. :(", process.Id);
-                    process.Kill();
-                }
+              
             }
         }
 
